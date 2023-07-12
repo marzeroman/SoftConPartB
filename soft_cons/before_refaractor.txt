@@ -1,0 +1,39 @@
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>
+#include <SPI.h>
+#include <RF24.h>
+
+#define MQ135_PIN A0
+#define CE_PIN 9
+#define CS_PIN 10
+
+RF24 radio(CE_PIN, CS_PIN);
+
+void setup() {
+  Serial.begin(9600);
+  radio.begin();
+  radio.setChannel(1);
+  radio.setDataRate(RF24_2MBPS);
+  radio.setPALevel(RF24_PA_MAX);
+}
+
+void loop() {
+  float airQuality = readAirQuality();
+  Serial.print("Air Quality: ");
+  Serial.println(airQuality);
+
+  uint8_t data[4];
+  memcpy(data, &airQuality, sizeof(float));
+
+  radio.write(&data, sizeof(data));
+  delay(1000);
+}
+
+float readAirQuality() {
+  int sensorValue = analogRead(MQ135_PIN);
+  float voltage = sensorValue * (5.0 / 1023.0);
+  float sensorResistance = ((5.0 - voltage) / voltage) * 10.0;
+  float airQuality = (100.0 / 3.0) * sensorResistance;
+  return airQuality;
+}
